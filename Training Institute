@@ -1,0 +1,3530 @@
+package com.login.bean;
+
+public class LoginBean {
+
+ private String userName;
+ private String password;
+
+ public String getUserName() {
+ return userName;
+ }
+ public void setUserName(String userName) {
+ this.userName = userName;
+ }
+ public String getPassword() {
+ return password;
+ }
+ public void setPassword(String password) {
+ this.password = password;
+ }
+}
+package com.login.controller;
+import java.io.IOException;
+
+import javax.servlet.ServletContext;
+import javax.servlet.ServletException;
+
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+
+
+import com.login.bean.LoginBean;
+import com.login.dao.LoginDao;
+//import jakarta.servlet.*;
+//import jakarta.servlet.http.HttpServlet;
+//import jakarta.servlet.http.HttpServletRequest;
+//import jakarta.servlet.http.HttpServletResponse;
+//import jakarta.servlet.http.HttpSession;
+public class LoginServlet extends HttpServlet {
+private static final long serialVersionUID = 1L;
+
+public LoginServlet() {
+}
+
+protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException 
+{
+ String userName = request.getParameter("username");
+ String password = request.getParameter("password");
+
+ LoginBean loginBean = new LoginBean();
+
+ loginBean.setUserName(userName);
+ loginBean.setPassword(password);
+
+ LoginDao loginDao = new LoginDao();
+
+ try
+ {
+  String userValidate = loginDao.authenticateUser(loginBean);
+
+  if(userValidate.equals("Admin_Role"))
+  {
+   System.out.println("Admin's Home");
+
+   HttpSession session = request.getSession(); //Creating a session
+   session.setAttribute("Admin", userName); //setting session attribute
+   request.setAttribute("userName", userName);
+
+   request.getRequestDispatcher("/Admin.jsp").forward(request, response);
+  }
+  else if(userValidate.equals("Editor_Role"))
+  {
+   System.out.println("Institute's Home");
+   HttpSession session = request.getSession();
+   session.setAttribute("Editor", userName);
+   request.setAttribute("userName", userName);
+   request.getRequestDispatcher("/Institute.jsp").forward(request, response);
+  } else if(userValidate.equals("User_Role"))
+  {
+   System.out.println("Student's Home");
+
+   HttpSession session = request.getSession();
+   session.setMaxInactiveInterval(10*60);
+   session.setAttribute("User", userName);
+   request.setAttribute("userName", userName);
+   request.setAttribute("password",password);
+   ServletContext sc = getServletContext();
+   sc.setAttribute("username",userName);
+   request.getRequestDispatcher("/Student.jsp").forward(request, response);
+  }
+  else
+  {
+   System.out.println("Error message = "+userValidate);
+   request.setAttribute("errMessage", userValidate);
+
+   request.getRequestDispatcher("/Login.jsp").forward(request, response);
+  }
+ }
+ catch (IOException e1)
+ {
+  e1.printStackTrace();
+ }
+ catch (Exception e2)
+ {
+  e2.printStackTrace();
+ }
+} //End of doPost()
+}
+package com.login.controller;
+
+import java.io.IOException;
+
+import javax.servlet.RequestDispatcher;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+
+//import jakarta.servlet.*;
+//import jakarta.servlet.http.HttpServlet;
+//import jakarta.servlet.http.HttpServletRequest;
+//import jakarta.servlet.http.HttpServletResponse;
+//import jakarta.servlet.http.HttpSession;
+
+public class LogoutServlet extends HttpServlet {
+	private static final long serialVersionUID = 1L;
+
+	protected void doGet(HttpServletRequest request, HttpServletResponse response)
+			throws ServletException, IOException {
+		HttpSession session = request.getSession(false); // Fetch session object
+
+		if (session != null) // If session is not null
+		{
+			session.invalidate(); // removes all session attributes bound to the session
+			request.setAttribute("errMessage", "You have logged out successfully");
+			System.out.println(request.getParameter("un"));
+			RequestDispatcher requestDispatcher = request.getRequestDispatcher("/front.html.jsp");
+			requestDispatcher.forward(request, response);
+			System.out.println("Logged out");
+		}
+	}
+}
+package com.login.controller;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import com.login.util.DBConnection;
+
+/**
+ * Servlet implementation class SendRequest
+ */
+@WebServlet("/SendRequest")
+public class SendRequest extends HttpServlet {
+	private static final long serialVersionUID = 1L;
+	static Connection con = (Connection) DBConnection.createConnection();
+	static Statement st = null;
+	static PreparedStatement pt = null;
+	static ResultSet resultSet = null;
+
+	/**
+	 * @see HttpServlet#HttpServlet()
+	 */
+	public SendRequest() {
+		super();
+		// TODO Auto-generated constructor stub
+	}
+
+	/**
+	 * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse
+	 *      response)
+	 */
+	protected void doGet(HttpServletRequest request, HttpServletResponse response)
+			throws ServletException, IOException {
+		// TODO Auto-generated method stub
+		response.getWriter().append("Served at: ").append(request.getContextPath());
+	}
+
+	/**
+	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse
+	 *      response)
+	 */
+	protected void doPost(HttpServletRequest request, HttpServletResponse response)
+			throws ServletException, IOException {
+		// TODO Auto-generated method stub
+		String name = request.getParameter("Name");
+		String req = request.getParameter("req");
+		String usid = request.getParameter("userid");
+
+		System.out.println("welcome");
+		try {
+			st = con.createStatement();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		try {
+			pt = con.prepareStatement("insert into student_request (Name,Request,UserId,Response) values (?,?,?,?)");
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		try {
+			pt.setString(1, name);
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		try {
+			pt.setString(2, req);
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		try {
+			pt.setString(3, usid);
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		try {
+			pt.setString(4, "pending");
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		int res = 0;
+		try {
+			res = pt.executeUpdate();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		System.out.println("yes");
+		if (res > 0) {
+			System.out.println("Successfully Updated.....");
+		} else {
+			System.out.println(pt);
+		}
+		response.setContentType("text/html;charset=UTF-8");
+		try (PrintWriter out = response.getWriter()) {
+			/* TODO output your page here. You may use following sample code. */
+			out.println("<!DOCTYPE html>");
+			out.println("<html>");
+			out.println("<head>");
+			out.println("<title>Servlet Welcome</title>");
+			out.println("</head>");
+			out.println("<body>");
+			out.println("<h1>Servlet Welcome at " + name + "</h1>");
+			out.println("<h2>Hi </h2>");
+			out.println("</body>");
+			out.println("</html>");
+}}}
+package com.login.controller;
+
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.Statement;
+
+import javax.servlet.ServletContext;
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import com.login.util.DBConnection;
+
+/**
+ * Servlet implementation class StudentUpdate1
+ */
+@WebServlet("/StudentUpdate1")
+public class StudentUpdate1 extends HttpServlet {
+	private static final long serialVersionUID = 1L;
+	static Connection con = (Connection) DBConnection.createConnection();
+    static Statement st = null;
+    static PreparedStatement pt = null;
+    static ResultSet resultSet = null;
+     
+    public StudentUpdate1() {
+        super();
+        // TODO Auto-generated constructor stub
+    }
+
+	/**
+	 * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse response)
+	 */
+	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		// TODO Auto-generated method stub
+		response.getWriter().append("Served at: ").append(request.getContextPath());
+	}
+
+	/**
+	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
+	 */
+	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		// TODO Auto-generated method stub
+		 String username = request.getParameter("username");
+	        String password = request.getParameter("password");
+	        String Role = request.getParameter("role");
+	        System.out.println("Selected Role is " + Role);
+	         ServletContext sc = getServletContext();
+	        try {
+	            st = con.createStatement();
+	            if (Role.equalsIgnoreCase("institute")) {
+	                pt = con.prepareStatement("select * from institution_details where Name=? && Password=?");
+	            } else if (Role.equalsIgnoreCase("student")) {
+	                pt = con.prepareStatement("select * from student_details where UserId=? && Password=?");
+	            } else {
+	                pt = con.prepareStatement("select * from login_details where USERNAME=? && PASSWORD=?");
+	            }
+	            pt.setString(1, username);
+	            pt.setString(2, password);
+	            resultSet = pt.executeQuery();
+	            
+	            if (resultSet.next()) {
+	                sc.setAttribute("username",username);
+	                sc.setAttribute("password", sc);
+	                request.setAttribute("userName", username);
+	                request.setAttribute("password",password);
+	                if (Role.equalsIgnoreCase("institute")) {
+	                	request.getRequestDispatcher("/Institute.jsp").forward(request, response);
+	                } else if (Role.equalsIgnoreCase("student")) {
+	                	sc.setAttribute("rc", resultSet);
+	                	request.getRequestDispatcher("/Student.jsp").forward(request, response);
+	                } else {
+	                	request.getRequestDispatcher("/Admin.jsp").forward(request, response);
+	                }
+	            }else{
+	                System.out.println(pt);
+	                sc.setAttribute("error",Role);
+	                response.sendRedirect("error1.html");
+	            }
+	        } catch (Exception e) {
+	        }
+	}
+}
+package com.login.controller;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import com.login.util.DBConnection;
+
+/**
+ * Servlet implementation class UpdateInstitute
+ */
+@WebServlet("/UpdateInstitute")
+public class UpdateInstitute extends HttpServlet {
+	private static final long serialVersionUID = 1L;
+
+	static Connection con = (Connection) DBConnection.createConnection();
+	static Statement st = null;
+	static PreparedStatement pt = null;
+	static ResultSet resultSet = null;
+
+	/**
+	 * @see HttpServlet#HttpServlet()
+	 */
+	public UpdateInstitute() {
+		super();
+		// TODO Auto-generated constructor stub
+	}
+
+	/**
+	 * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse
+	 *      response)
+	 */
+	protected void doGet(HttpServletRequest request, HttpServletResponse response)
+			throws ServletException, IOException {
+		// TODO Auto-generated method stub
+		response.getWriter().append("Served at: ").append(request.getContextPath());
+	}
+
+	/**
+	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse
+	 *      response)
+	 */
+	protected void doPost(HttpServletRequest request, HttpServletResponse response)
+			throws ServletException, IOException {
+		// TODO Auto-generated method stub
+		String name = request.getParameter("sname");
+		String pass = request.getParameter("spass");
+		String email = request.getParameter("semail");
+		String add = request.getParameter("sadd");
+		String contact = request.getParameter("scon");
+		String usid = request.getParameter("UserId");
+
+		System.out.println("welcome");
+		try {
+			st = con.createStatement();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		try {
+			pt = con.prepareStatement(
+					"Update institution_details set Password=?,Affiliation=?,Address=?,Seats=?,Courses=? where Name=?");
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		try {
+			pt.setString(6, name);
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		try {
+			pt.setString(1, pass);
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		try {
+			pt.setString(2, email);
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		try {
+			pt.setString(4, contact);
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		try {
+			pt.setString(3, add);
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		try {
+			pt.setString(5, usid);
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		int res = 0;
+		try {
+			res = pt.executeUpdate();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		System.out.println("yes");
+		if (res > 0) {
+			System.out.println("Successfully Updated.....");
+		} else {
+			System.out.println(pt);
+		}
+		response.setContentType("text/html;charset=UTF-8");
+		try (PrintWriter out = response.getWriter()) {
+
+			response.sendRedirect("Success.html");
+		}
+	}
+}
+package com.login.controller;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import com.login.util.DBConnection;
+
+/**
+ * Servlet implementation class UpdateStudent
+ */
+@WebServlet("/UpdateStudent")
+public class UpdateStudent extends HttpServlet {
+	private static final long serialVersionUID = 1L;
+
+	static Connection con = (Connection) DBConnection.createConnection();
+	static Statement st = null;
+	static PreparedStatement pt = null;
+	static ResultSet resultSet = null;
+
+	/**
+	 * @see HttpServlet#HttpServlet()
+	 */
+	public UpdateStudent() {
+		super();
+		// TODO Auto-generated constructor stub
+	}
+
+	/**
+	 * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse
+	 *      response)
+	 */
+	protected void doGet(HttpServletRequest request, HttpServletResponse response)
+			throws ServletException, IOException {
+		// TODO Auto-generated method stub
+		response.getWriter().append("Served at: ").append(request.getContextPath());
+	}
+
+	/**
+	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse
+	 *      response)
+	 */
+	protected void doPost(HttpServletRequest request, HttpServletResponse response)
+			throws ServletException, IOException {
+		// TODO Auto-generated method stub
+		String name = request.getParameter("sname");
+		String email = request.getParameter("semail");
+		String add = request.getParameter("sadd");
+		String contact = request.getParameter("scon");
+		String pass = request.getParameter("spass");
+		String usid = request.getParameter("UserId");
+
+		System.out.println("welcome");
+		try {
+			st = con.createStatement();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		try {
+			pt = con.prepareStatement(
+					"Update student_details set Name=?,Password=?,EmailId=?,Contact=?,Address=? where UserId=?");
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		try {
+			pt.setString(1, name);
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		try {
+			pt.setString(2, pass);
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		try {
+			pt.setString(3, email);
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		try {
+			pt.setString(4, contact);
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		try {
+			pt.setString(5, add);
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		try {
+			pt.setString(6, usid);
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		int res = 0;
+		try {
+			res = pt.executeUpdate();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		System.out.println("yes");
+		if (res > 0) {
+			System.out.println("Successfully Updated.....");
+		} else {
+			System.out.println(pt);
+		}
+		response.setContentType("text/html;charset=UTF-8");
+		try (PrintWriter out = response.getWriter()) {
+			/* TODO output your page here. You may use following sample code. */
+			out.println("<!DOCTYPE html>");
+			out.println("<html>");
+			out.println("<head>");
+			out.println("<title>Updated</title>");
+			out.println("</head>");
+			out.println("<body>");
+			out.println("<h1>Your profile is Updated</h1>");
+			out.println("<h2>Thank you " + name + " </h2>");
+			out.println("</body>");
+			out.println("</html>");
+		}
+	}
+
+}
+package com.login.dao;
+
+import java.sql.*;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+
+import com.login.bean.LoginBean;
+import com.login.util.DBConnection;
+
+public class LoginDao {
+
+	public String authenticateUser(LoginBean loginBean) {
+		String userName = loginBean.getUserName();
+		String password = loginBean.getPassword();
+
+		Connection con = null;
+		Statement statement = null;
+		ResultSet resultSet = null;
+
+		String userNameDB = "";
+		String passwordDB = "";
+		String roleDB = "";
+
+		try {
+			con = DBConnection.createConnection();
+			statement = con.createStatement();
+			resultSet = statement.executeQuery("select username,password,role from login_details");
+
+			while (resultSet.next()) {
+				userNameDB = resultSet.getString("username");
+				passwordDB = resultSet.getString("password");
+				roleDB = resultSet.getString("role");
+
+				if (userName.equals(userNameDB) && password.equals(passwordDB) && roleDB.equals("Admin"))
+					return "Admin_Role";
+				else if (userName.equals(userNameDB) && password.equals(passwordDB) && roleDB.equals("Institute"))
+					return "Editor_Role";
+				else if (userName.equals(userNameDB) && password.equals(passwordDB) && roleDB.equals("Student"))
+					return "User_Role";
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return "Invalid user credentials";
+	}
+}
+
+package com.login.util;
+
+import java.sql.*;
+
+public class DBConnection {
+
+	public static Connection createConnection() {
+		Connection con = null;
+		String url = "jdbc:mysql://localhost:3306/customers";
+		String username = "root";
+		String password = "123456";
+
+		try {
+			try {
+				Class.forName("com.mysql.cj.jdbc.Driver");
+			} catch (ClassNotFoundException e) {
+				e.printStackTrace();
+			}
+			con = DriverManager.getConnection(url, username, password);
+			System.out.println("Post establishing a DB connection - " + con);
+		} catch (SQLException e) {
+			System.out.println("An error occurred. Maybe user/password is invalid");
+			e.printStackTrace();
+		}
+		return con;
+	}
+}
+package com.mvc.bean;
+
+public class RegisterBean {
+
+	private String Name;
+	private String Qualification;
+	private String Password;
+	private String Contact;
+	private String Address;
+	private String EmailId;
+	private String UserId;
+
+	public String getName() {
+		return Name;
+	}
+
+	public void setName(String name) {
+		Name = name;
+	}
+
+	public String getQualification() {
+		return Qualification;
+	}
+
+	public void setQualification(String qualification) {
+		Qualification = qualification;
+	}
+
+	public String getPassword() {
+		return Password;
+	}
+
+	public void setPassword(String password) {
+		Password = password;
+	}
+
+	public String getContact() {
+		return Contact;
+	}
+
+	public void setContact(String contact) {
+		Contact = contact;
+	}
+
+	public String getAddress() {
+		return Address;
+	}
+
+	public void setAddress(String address) {
+		Address = address;
+	}
+
+	public String getEmailId() {
+		return EmailId;
+	}
+
+	public void setEmailId(String emailId) {
+		EmailId = emailId;
+	}
+
+	public String getUserId() {
+		return UserId;
+	}
+
+	public void setUserId(String userId) {
+		UserId = userId;
+	}
+
+}
+
+package com.mvc.bean;
+
+public class RegisterBean1 {
+	private String Name;
+	private String Password;
+	private String Affiliation;
+	private String Address;
+	private String Seats;
+	private String Courses;
+
+	public String getName() {
+		return Name;
+	}
+
+	public void setName(String name) {
+		Name = name;
+	}
+
+	public String getPassword() {
+		return Password;
+	}
+
+	public void setPassword(String password) {
+		Password = password;
+	}
+
+	public String getAffiliation() {
+		return Affiliation;
+	}
+
+	public void setAffiliation(String affiliation) {
+		Affiliation = affiliation;
+	}
+
+	public String getAddress() {
+		return Address;
+	}
+
+	public void setAddress(String address) {
+		Address = address;
+	}
+
+	public String getSeats() {
+		return Seats;
+	}
+
+	public void setSeats(String seats) {
+		Seats = seats;
+	}
+
+	public String getCourses() {
+		return Courses;
+	}
+
+	public void setCourses(String courses) {
+		Courses = courses;
+	}
+
+}
+
+package com.mvc.bean;
+
+public class RegisterBean2 {
+	
+	private String Name;
+	private String Qualification;
+	private String Salary;
+	
+	public String getName() {
+		return Name;
+	}
+	public void setName(String name) {
+		Name = name;
+	}
+	public String getQualification() {
+		return Qualification;
+	}
+	public void setQualification(String qualification) {
+		Qualification = qualification;
+	}
+	public String getSalary() {
+		return Salary;
+	}
+	public void setSalary(String salary) {
+		Salary	= salary;
+	}
+	
+}
+
+package com.mvc.bean;
+
+public class RegisterBean3 {
+	
+	private String UserId;
+	private String Name;
+	private String Opinion;
+	public String getUserId() {
+		return UserId;
+	}
+	public void setUserId(String userId) {
+		UserId = userId;
+	}
+	public String getName() {
+		return Name;
+	}
+	public void setName(String name) {
+		Name = name;
+	}
+	public String getOpinion() {
+		return Opinion;
+	}
+	public void setOpinion(String opinion) {
+		Opinion = opinion;
+	}
+
+
+}
+
+package com.mvc.bean;
+
+public class RegisterBean4 {
+	private String UserName;
+	private String Name;
+	private String Request;
+	private String Response;
+
+	public String getUserName() {
+		return UserName;
+	}
+
+	public void setUserName(String userName) {
+		UserName = userName;
+	}
+
+	public String getName() {
+		return Name;
+	}
+
+	public void setName(String name) {
+		Name = name;
+	}
+
+	public String getRequest() {
+		return Request;
+	}
+
+	public void setRequest(String request) {
+		Request = request;
+	}
+
+	public String getResponse() {
+		return Response;
+	}
+
+	public void setResponse(String response) {
+		Response = response;
+	}
+
+}
+package com.mvc.dao;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+
+public class DBConnection {
+	public static Connection createConnection() {
+		Connection con = null;
+		String url = "jdbc:mysql://localhost:3306/customers"; // MySQL URL followed by the database name
+		String username = "root"; // MySQL username
+		String password = "123456"; // MySQL password
+		System.out.println("In DBConnection.java class ");
+
+		try {
+			try {
+				Class.forName("com.mysql.jdbc.Driver"); // loading MySQL drivers. This differs for database servers
+			} catch (ClassNotFoundException e) {
+				e.printStackTrace();
+			}
+			con = DriverManager.getConnection(url, username, password); // attempting to connect to MySQL database
+			System.out.println("Printing connection object " + con);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return con;
+	}
+}
+package com.mvc.dao;
+
+public class DeleteBean {
+
+	private String Name;
+
+	public String getName() {
+		return Name;
+	}
+
+	public void setName(String name) {
+		Name = name;
+	}
+
+}
+package com.mvc.dao;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import com.mvc.dao.DeleteBean;
+
+import com.login.util.DBConnection;
+
+public class DeleteDao {
+	public String registerUser(DeleteBean deleteBean) {
+		String Name = deleteBean.getName();
+
+		Connection con = null;
+		PreparedStatement preparedStatement = null;
+		try {
+			con = DBConnection.createConnection();
+			String query = "delete from institution_details where Name=?";
+			preparedStatement = con.prepareStatement(query); // Making use of prepared statements here to insert bunch
+																// of data
+			preparedStatement.setString(1, Name);
+
+			int i = preparedStatement.executeUpdate();
+
+			if (i != 0) // Just to ensure data has been inserted into the database
+				return "SUCCESS";
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return "Oops.. Something went wrong there..!"; // On failure, send a message from here.
+	}
+}
+package com.mvc.dao;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import com.mvc.bean.RegisterBean;
+import com.login.util.DBConnection;
+ 
+public class RegisterDao { 
+     public String registerUser(RegisterBean registerBean)
+     {
+         String Name = registerBean.getName();
+         String Qualification = registerBean.getQualification();
+         String Password = registerBean.getPassword();
+         String Contact = registerBean.getContact();
+         String Address = registerBean.getAddress();
+         String EmailId = registerBean.getEmailId();
+         String UserId = registerBean.getUserId();
+         
+         Connection con = null;
+         PreparedStatement preparedStatement = null;         
+         try
+         {
+             con = DBConnection.createConnection();
+             String query = "insert into student_details(Name,Qualification,Password,Contact,Address,EmailId,UserId) values (?,?,?,?,?,?,?)"; //Insert user details into the table 'USERS'
+             preparedStatement = con.prepareStatement(query); //Making use of prepared statements here to insert bunch of data
+             preparedStatement.setString(1,Name );
+             preparedStatement.setString(2,Qualification );
+             preparedStatement.setString(3,Password );
+             preparedStatement.setString(4,Contact);
+             preparedStatement.setString(5, Address);
+             preparedStatement.setString(6, EmailId);
+             preparedStatement.setString(7, UserId);
+             
+             int i= preparedStatement.executeUpdate();
+             
+             if (i!=0)  //Just to ensure data has been inserted into the database
+             return "SUCCESS"; 
+         }
+         catch(SQLException e)
+         {
+            e.printStackTrace();
+         }       
+         return "Oops.. Something went wrong there..!";  // On failure, send a message from here.
+     }
+}
+package com.mvc.dao;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import com.mvc.bean.RegisterBean1;
+import com.login.util.DBConnection;
+ 
+public class RegisterDao1 { 
+     public String registerUser(RegisterBean1 registerBean1)
+     {
+         String Name = registerBean1.getName();
+         String Password = registerBean1.getPassword();
+         String Affiliation = registerBean1.getAffiliation();
+         String Address = registerBean1.getAddress();
+         String Seats = registerBean1.getSeats();
+         String Courses = registerBean1.getCourses();
+         
+         Connection con = null;
+         PreparedStatement preparedStatement = null;         
+         try
+         {
+             con = DBConnection.createConnection();
+             String query = "insert into institution_details(Name,Password,Affiliation,Address,Seats,Courses) values (?,?,?,?,?,?)";
+             preparedStatement = con.prepareStatement(query); //Making use of prepared statements here to insert bunch of data
+             preparedStatement.setString(1,Name );
+             preparedStatement.setString(2,Password );
+             preparedStatement.setString(3,Affiliation);
+             preparedStatement.setString(4, Address);
+             preparedStatement.setString(5, Seats);
+             preparedStatement.setString(6, Courses);
+             
+             int i= preparedStatement.executeUpdate();
+             
+             if (i!=0)  //Just to ensure data has been inserted into the database
+             return "SUCCESS"; 
+         }
+         catch(SQLException e)
+         {
+            e.printStackTrace();
+         }       
+         return "Oops.. Something went wrong there..!";  // On failure, send a message from here.
+     }
+}
+
+package com.mvc.dao;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import com.login.util.DBConnection;
+
+import com.mvc.bean.RegisterBean2;
+ 
+public class RegisterDao2 { 
+     public String registerUser(RegisterBean2 registerBean2)
+     {
+         String Name = registerBean2.getName();
+         String Qualification = registerBean2.getQualification();
+         String Salary = registerBean2.getSalary();
+ 
+         
+         Connection con = null;
+         PreparedStatement preparedStatement = null;         
+         try
+         {
+             con = DBConnection.createConnection();
+             String query = "insert into faculty_details(Name,Qualification,Salary) values (?,?,?)"; //Insert user details into the table 'USERS'
+             preparedStatement = con.prepareStatement(query); //Making use of prepared statements here to insert bunch of data
+             preparedStatement.setString(1,Name );
+             preparedStatement.setString(2,Qualification );
+             preparedStatement.setString(3,Salary );
+             
+             int i= preparedStatement.executeUpdate();
+             
+             if (i!=0)  //Just to ensure data has been inserted into the database
+             return "SUCCESS"; 
+         }
+         catch(SQLException e)
+         {
+            e.printStackTrace();
+         }       
+         return "Oops.. Something went wrong there..!";  // On failure, send a message from here.
+     }
+}
+package com.mvc.dao;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import com.login.util.DBConnection;
+import com.mvc.bean.RegisterBean3;
+
+ 
+public class RegisterDao3 { 
+     public String registerUser(RegisterBean3 registerBean3)
+     {
+         String UserId= registerBean3.getUserId();
+         String Name = registerBean3.getName();
+         String Opinion = registerBean3.getOpinion();
+ 
+         
+         Connection con = null;
+         PreparedStatement preparedStatement = null;         
+         try
+         {
+             con = DBConnection.createConnection();
+             String query = "insert into feedback(UserId,Name,Opinion) values (?,?,?)"; //Insert user details into the table 'USERS'
+             preparedStatement = con.prepareStatement(query); //Making use of prepared statements here to insert bunch of data
+             preparedStatement.setString(1,UserId );
+             preparedStatement.setString(2,Name );
+             preparedStatement.setString(3,Opinion );
+             
+             int i= preparedStatement.executeUpdate();
+             
+             if (i!=0)  //Just to ensure data has been inserted into the database
+             return "SUCCESS"; 
+         }
+         catch(SQLException e)
+         {
+            e.printStackTrace();
+         }       
+         return "Oops.. Something went wrong there..!";  // On failure, send a message from here.
+     }
+}
+package com.mvc.dao;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import com.login.util.DBConnection;
+import com.mvc.bean.RegisterBean4;
+ 
+public class RegisterDao4 { 
+     public String registerUser(RegisterBean4 registerBean4)
+     {
+         String UserName = registerBean4.getUserName();
+         String Name = registerBean4.getName();
+         String Request = registerBean4.getRequest();
+         String Response = registerBean4.getResponse();
+        
+         
+         Connection con = null;
+         PreparedStatement preparedStatement = null;         
+         try
+         {
+             con = DBConnection.createConnection();
+             String query = "insert into student_request(UserName,Name,Request,Response) values (?,?,?,?)"; //Insert user details into the table 'USERS'
+             preparedStatement = con.prepareStatement(query); //Making use of prepared statements here to insert bunch of data
+             preparedStatement.setString(1,UserName );
+             preparedStatement.setString(2,Name );
+             preparedStatement.setString(3,Request );
+             preparedStatement.setString(4,Response);
+          
+             
+             int i= preparedStatement.executeUpdate();
+             
+             if (i!=0)  //Just to ensure data has been inserted into the database
+             return "SUCCESS"; 
+         }
+         catch(SQLException e)
+         {
+            e.printStackTrace();
+         }       
+         return "Oops.. Something went wrong there..!";  // On failure, send a message from here.
+     }
+}
+package com.mvc.dao;
+
+public class UpdateBean {
+	private String Name;
+	private String Qualification;
+	private String Password;
+	private String Contact;
+	private String Address;
+	private String EmailId;
+	private String UserId;
+	public String getName() {
+		return Name;
+	}
+	public void setName(String name) {
+		Name = name;
+	}
+	public String getQualification() {
+		return Qualification;
+	}
+	public void setQualification(String qualification) {
+		Qualification = qualification;
+	}
+	public String getPassword() {
+		return Password;
+	}
+	public void setPassword(String password) {
+		Password = password;
+	}
+	public String getContact() {
+		return Contact;
+	}
+	public void setContact(String contact) {
+		Contact = contact;
+	}
+	public String getAddress() {
+		return Address;
+	}
+	public void setAddress(String address) {
+		Address = address;
+	}
+	public String getEmailId() {
+		return EmailId;
+	}
+	public void setEmailId(String emailId) {
+		EmailId = emailId;
+	}
+	public String getUserId() {
+		return UserId;
+	}
+	public void setUserId(String userId) {
+		UserId = userId;
+	}
+		
+
+
+}
+package com.mvc.dao;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import com.mvc.dao.DeleteBean;
+import com.login.util.DBConnection;
+ public class UpdateDao {
+
+	  public String registerUser(UpdateBean updateBean)
+	     {
+	         String Name = updateBean.getName();
+	         String Qualification = updateBean.getQualification();
+	         String Password = updateBean.getPassword();
+	         String Contact = updateBean.getContact();
+             String Address = updateBean.getAddress();
+	         String EmailId = updateBean.getEmailId();
+	         String UserId = updateBean.getUserId();
+
+	         Connection con = null;
+	         PreparedStatement preparedStatement = null;         
+	         try
+	         {
+	             con = DBConnection.createConnection();
+	             String query = "update from student_details where Name=?";
+	             preparedStatement = con.prepareStatement(query); //Making use of prepared statements here to insert bunch of data
+	             preparedStatement.setString(1,Name );
+	             
+	 
+	             
+	             int i= preparedStatement.executeUpdate();
+	             
+	             if (i!=0)  //Just to ensure data has been inserted into the database
+	             return "SUCCESS"; 
+	         }
+	         catch(SQLException e)
+	         {
+	            e.printStackTrace();
+	         }       
+	         return "Oops.. Something went wrong there..!";  // On failure, send a message from here.
+	     }
+	}
+package com.mvc.servlet;
+
+import java.io.IOException;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import com.mvc.dao.DeleteBean;
+
+//import jakarta.servlet.*;
+
+//import jakarta.servlet.http.HttpServlet;
+//import jakarta.servlet.http.HttpServletRequest;
+//import jakarta.servlet.http.HttpServletResponse;
+
+import com.mvc.dao.DeleteDao;
+
+public class DeleteServlet extends HttpServlet {
+	private static final long serialVersionUID = 1L;
+
+	public DeleteServlet() {
+	}
+
+	protected void doPost(HttpServletRequest request, HttpServletResponse response)
+			throws ServletException, IOException {
+		// Copying all the input parameters in to local variable
+		String Name = request.getParameter("Name");
+
+		DeleteBean deleteBean = new DeleteBean();
+		// Using Java Beans - An easiest way to play with group of related data
+		deleteBean.setName(Name);
+
+		DeleteDao deleteDao = new DeleteDao();
+
+		// The core Logic of the Registration application is present here. We are going
+		// to insert user data in to the database.
+		String deletedInstitute = deleteDao.registerUser(deleteBean);
+
+		if (deletedInstitute.equals("SUCCESS")) // On success, you can display a message to user on Home page
+		{
+			request.getRequestDispatcher("/deletesucess.jsp").forward(request, response);
+		} else // On Failure, display a meaningful message to the User.
+		{
+			request.setAttribute("errMessage", deletedInstitute);
+			request.getRequestDispatcher("/Register.jsp").forward(request, response);
+		}
+	}
+}
+package com.mvc.servlet;
+
+	import java.io.IOException;
+	import javax.servlet.ServletException;
+	import javax.servlet.http.HttpServlet;
+	import javax.servlet.http.HttpServletRequest;
+	import javax.servlet.http.HttpServletResponse;
+
+import com.mvc.bean.RegisterBean2;
+
+//import jakarta.servlet.*;
+//import jakarta.servlet.http.HttpServlet;
+//import jakarta.servlet.http.HttpServletRequest;
+//import jakarta.servlet.http.HttpServletResponse;
+
+
+import com.mvc.dao.RegisterDao2;
+	 
+	public class FacultyServlet extends HttpServlet {
+		private static final long serialVersionUID = 1L;
+	 
+	    
+
+		public FacultyServlet() {
+	     }
+	 
+	     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+	        //Copying all the input parameters in to local variables
+	         String Name = request.getParameter("Name");
+	         String Qualification = request.getParameter("Qualification");
+	         String Salary = request.getParameter("Salary");
+	         
+	         
+	         RegisterBean2 registerBean2 = new RegisterBean2();
+	        //Using Java Beans - An easiest way to play with group of related data
+	         registerBean2.setName(Name);
+	         registerBean2.setQualification(Qualification);
+	         registerBean2.setSalary(Salary);
+	        
+	         
+	         RegisterDao2 registerDao2 = new RegisterDao2();
+	         
+	        //The core Logic of the Registration application is present here. We are going to insert user data in to the database.
+	         String userRegistered = registerDao2.registerUser(registerBean2);
+	         
+	         if(userRegistered.equals("SUCCESS"))   //On success, you can display a message to user on Home page
+	         {
+	            request.getRequestDispatcher("/Home.jsp").forward(request, response);
+	         }
+	         else   //On Failure, display a meaningful message to the User.
+	         {
+	            request.setAttribute("errMessage", userRegistered);
+	            request.getRequestDispatcher("/Register.jsp").forward(request, response);
+	         }
+	     }
+	}
+package com.mvc.servlet;
+
+	import java.io.IOException;
+	import javax.servlet.ServletException;
+	import javax.servlet.http.HttpServlet;
+	import javax.servlet.http.HttpServletRequest;
+	import javax.servlet.http.HttpServletResponse;
+	
+//import jakarta.servlet.*;
+//import jakarta.servlet.http.HttpServlet;
+//import jakarta.servlet.http.HttpServletRequest;
+//import jakarta.servlet.http.HttpServletResponse;
+
+import com.mvc.bean.RegisterBean;
+import com.mvc.bean.RegisterBean3;
+import com.mvc.dao.RegisterDao;
+import com.mvc.dao.RegisterDao3;
+	 
+	public class FeedbackServlet extends HttpServlet {
+		private static final long serialVersionUID = 1L;
+	 
+	    
+
+		public FeedbackServlet() {
+	     }
+	 
+	     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+	        //Copying all the input parameters in to local variables
+	         String UserId = request.getParameter("UserId");
+	         String Name = request.getParameter("Name");
+	         String Opinion = request.getParameter("Opinion");
+	         
+	         
+	         RegisterBean3 registerBean3 = new RegisterBean3();
+	        //Using Java Beans - An easiest way to play with group of related data
+	         registerBean3.setUserId(UserId);
+	         registerBean3.setName(Name);
+	         registerBean3.setOpinion(Opinion);
+	         
+	         RegisterDao3 registerDao3 = new RegisterDao3();
+	         
+	        //The core Logic of the Registration application is present here. We are going to insert user data in to the database.
+	         String userRegistered = registerDao3.registerUser(registerBean3);
+	         
+	         if(userRegistered.equals("SUCCESS"))   //On success, you can display a message to user on Home page
+	         {
+	            request.getRequestDispatcher("/Home.jsp").forward(request, response);
+	         }
+	         else   //On Failure, display a meaningful message to the User.
+	         {
+	            request.setAttribute("errMessage", userRegistered);
+	            request.getRequestDispatcher("/Feedback.jsp").forward(request, response);
+	         }
+	     }
+	}
+package com.mvc.servlet;
+
+	import java.io.IOException;
+	import javax.servlet.ServletException;
+	import javax.servlet.http.HttpServlet;
+	import javax.servlet.http.HttpServletRequest;
+	import javax.servlet.http.HttpServletResponse;
+	
+//import jakarta.servlet.*;
+//import jakarta.servlet.http.HttpServlet;
+//import jakarta.servlet.http.HttpServletRequest;
+//import jakarta.servlet.http.HttpServletResponse;
+
+import com.mvc.bean.RegisterBean1;
+import com.mvc.dao.RegisterDao1;
+	 
+	public class InstitutionServlet extends HttpServlet {
+		private static final long serialVersionUID = 1L;
+	 
+	    
+
+		public InstitutionServlet () {
+	     }
+	 
+	     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+	        //Copying all the input parameters in to local variables
+	         String Name = request.getParameter("Name");
+	         String Password = request.getParameter("Password");
+	         String Affiliation = request.getParameter("Affiliation");
+	         String Address = request.getParameter("Address");
+	         String Seats=request.getParameter("Seats");
+	         String Courses = request.getParameter("Courses");
+	         
+	         RegisterBean1 registerBean = new RegisterBean1();
+	        //Using Java Beans - An easiest way to play with group of related data
+	         registerBean.setName(Name);
+	         registerBean.setPassword(Password);
+	         registerBean.setAffiliation(Affiliation);
+	         registerBean.setAddress(Address);
+	         registerBean.setSeats(Seats);
+	         registerBean.setCourses(Courses);
+	         
+	         RegisterDao1 registerDao = new RegisterDao1();
+	         
+	        //The core Logic of the Registration application is present here. We are going to insert user data in to the database.
+	         String userRegistered = registerDao.registerUser(registerBean);
+	         
+	         if(userRegistered.equals("SUCCESS"))   //On success, you can display a message to user on Home page
+	         {
+	            request.getRequestDispatcher("/Home.jsp").forward(request, response);
+	         }
+	         else   //On Failure, display a meaningful message to the User.
+	         {
+	            request.setAttribute("errMessage", userRegistered);
+	            request.getRequestDispatcher("/Register.jsp").forward(request, response);
+	         }
+	     }
+	}
+package com.mvc.servlet;
+
+	import java.io.IOException;
+	import javax.servlet.ServletException;
+	import javax.servlet.http.HttpServlet;
+	import javax.servlet.http.HttpServletRequest;
+	import javax.servlet.http.HttpServletResponse;
+	
+//import jakarta.servlet.*;
+//import jakarta.servlet.http.HttpServlet;
+//import jakarta.servlet.http.HttpServletRequest;
+//import jakarta.servlet.http.HttpServletResponse;
+
+import com.mvc.bean.RegisterBean;
+import com.mvc.dao.RegisterDao;
+	 
+	public class RegisterServlett extends HttpServlet {
+		private static final long serialVersionUID = 1L;
+	 
+	    
+
+		public RegisterServlett() {
+	     }
+	 
+	     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+	        //Copying all the input parameters in to local variables
+	         String Name = request.getParameter("Name");
+	         String Qualification = request.getParameter("Qualification");
+	         String Password = request.getParameter("Password");
+	         String Contact = request.getParameter("Contact");
+	         String Address = request.getParameter("Address");
+	         String EmailId=request.getParameter("EmailId");
+	         String UserId = request.getParameter("UserId");
+	         
+	         RegisterBean registerBean = new RegisterBean();
+	        //Using Java Beans - An easiest way to play with group of related data
+	         registerBean.setName(Name);
+	         registerBean.setQualification(Qualification);
+	         registerBean.setPassword(Password);
+	         registerBean.setContact(Contact);
+	         registerBean.setAddress(Address);
+	         registerBean.setEmailId(EmailId);
+	         registerBean.setUserId(UserId);
+	         
+	         RegisterDao registerDao = new RegisterDao();
+	         
+	        //The core Logic of the Registration application is present here. We are going to insert user data in to the database.
+	         String userRegistered = registerDao.registerUser(registerBean);
+	         
+	         if(userRegistered.equals("SUCCESS"))   //On success, you can display a message to user on Home page
+	         {
+	            request.getRequestDispatcher("/Home.jsp").forward(request, response);
+	         }
+	         else   //On Failure, display a meaningful message to the User.
+	         {
+	            request.setAttribute("errMessage", userRegistered);
+	            request.getRequestDispatcher("/Register.jsp").forward(request, response);
+	         }
+	     }
+	}
+package com.mvc.servlet;
+
+	import java.io.IOException;
+	import javax.servlet.ServletException;
+	import javax.servlet.http.HttpServlet;
+	import javax.servlet.http.HttpServletRequest;
+	import javax.servlet.http.HttpServletResponse;
+	
+//import jakarta.servlet.*;
+//import jakarta.servlet.http.HttpServlet;
+//import jakarta.servlet.http.HttpServletRequest;
+//import jakarta.servlet.http.HttpServletResponse;
+
+import com.mvc.bean.RegisterBean4;
+import com.mvc.dao.RegisterDao4;
+	 
+	public class Request extends HttpServlet {
+		private static final long serialVersionUID = 1L;
+	 
+	    
+
+		public Request() {
+	     }
+	 
+	     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+	        //Copying all the input parameters in to local variables
+	         String UserName = request.getParameter("UserName");
+	         String Name = request.getParameter("Name");
+	         String Request = request.getParameter("Request");
+	         String Response = request.getParameter("Response");
+	        
+	         
+	         RegisterBean4 registerBean4 = new RegisterBean4();
+	        //Using Java Beans - An easiest way to play with group of related data
+	         registerBean4.setUserName(UserName);
+	         registerBean4.setName(Name);
+	         registerBean4.setRequest(Request);
+	         registerBean4.setResponse(Response);
+	         
+	         RegisterDao4 registerDao4 = new RegisterDao4();
+	         
+	        //The core Logic of the Registration application is present here. We are going to insert user data in to the database.
+	         String userRegistered = registerDao4.registerUser(registerBean4);
+	         
+	         if(userRegistered.equals("SUCCESS"))   //On success, you can display a message to user on Home page
+	         {
+	            request.getRequestDispatcher("/Home.jsp").forward(request, response);
+	         }
+	         else   //On Failure, display a meaningful message to the User.
+	         {
+	            request.setAttribute("errMessage", userRegistered);
+	            request.getRequestDispatcher("/Request.jsp").forward(request, response);
+	         }
+	     }
+	}
+package com.mvc.servlet;
+
+import java.io.IOException;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import com.mvc.dao.UpdateBean;
+import com.mvc.dao.UpdateDao;
+
+
+//import jakarta.servlet.*;
+//import jakarta.servlet.http.HttpServlet;
+//import jakarta.servlet.http.HttpServletRequest;
+//import jakarta.servlet.http.HttpServletResponse;
+
+
+	 
+	public class UpdateServlet extends HttpServlet {
+		private static final long serialVersionUID = 1L;
+	 
+	    
+
+		public UpdateServlet  () {
+	     }
+	 
+	     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+	        //Copying all the input parameters in to local variable
+	         String Name = request.getParameter("Name");
+	         
+	         UpdateBean UpdateBean = new UpdateBean();
+	        //Using Java Beans - An easiest way to play with group of related data
+	         UpdateBean.setName(Name);
+	  
+	         
+	         UpdateDao updateDao = new UpdateDao();
+	         
+	        //The core Logic of the Registration application is present here. We are going to insert user data in to the database.
+	         String UpdateStudent = updateDao.registerUser(UpdateBean);
+	         
+	         if( UpdateStudent.equals("SUCCESS"))   //On success, you can display a message to user on Home page
+	         {
+	            request.getRequestDispatcher("/Update.jsp").forward(request, response);
+	         }
+	         else   //On Failure, display a meaningful message to the User.
+	         {
+	            request.setAttribute("errMessage",  UpdateStudent);
+	            request.getRequestDispatcher("/Register.jsp").forward(request, response);
+	         }
+	     }
+	}
+JSP Files
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Admin</title>
+
+<style>
+
+body
+{
+ background-color: #b0e0e6;
+}
+</style>
+
+</head>
+<body>
+<center>
+<h2>Admin's Portal</h2>
+</center>
+
+<p style="font-size: 22pt" >
+Welcome <%=request.getAttribute("userName") %></p>
+<style>
+.myDiv {
+  border: 5px outset black;
+  background-color: white;    
+ 
+}
+</style>
+
+<div style="text-align: right"><a href="<%=request.getContextPath()%>/LogoutServlet">Logout</a></div>
+<div class="myDiv">
+<form  action="institutedetails.jsp">ADMIN Operations<br/><br></br>
+    <input type="submit" value="Institute_Details" />
+</form></div>
+<br></br>
+<div class="myDiv">
+<form  action="deletesucess.jsp">ADMIN Operations<br/><br></br>
+    <input type="submit" value="Delete_Institute" />
+</form></div>
+<br></br>
+<div class="myDiv">
+<form action="studentdetails.jsp">ADMIN Operations<br/><br></br>
+    <input type="submit" value="Student_Details" />
+</form></div>
+<br></br>
+<div class="myDiv">
+<form  action="Feedbackdetails.jsp">ADMIN Operations<br/><br></br>
+    <input type="submit" value="View_Feedback" />
+</form></div>
+<br></br>
+
+
+
+</body>
+</html>
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Insert title here</title>
+</head>
+<style>
+
+body
+{
+ font-family: 'IBM Plex Sans', sans-serif;
+ height: 90vh;
+    width: 100%;
+    color: black;
+    
+   
+
+</style>
+<style>
+body
+{
+background: #159957;  /* fallback for old browsers */
+background: -webkit-linear-gradient(to right, #155799, #159957);  /* Chrome 10-25, Safari 5.1-6 */
+background: linear-gradient(to right, #155799, #159957); /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
+
+form
+{
+padding:20px;
+
+}
+</style>
+<body>
+
+<div class="Home">
+
+<div class="col"  style="background-color:black;border:1px solid;">
+<center>
+<a href="welcome.jsp"><button type="button">Home</button></a>
+</center>
+</div>
+</div>
+</body>
+<body>
+
+<center>
+<form name="form" action="DeleteServlet" method="post">
+        <table >
+         <tr>
+         <br></br>
+         <br></br>
+         <br></br>
+         <td>Institute Name</td>
+         <td><input type="text" name="Name" /></td>
+         </tr>
+         
+        <tr>
+        <td>
+        <input type="checkbox"><p>Do you want to delete this<p></input>
+        </td>
+        </tr>
+         
+         <tr>
+         <td></td>
+         <td><input type="submit" value="Delete"></input>
+         <input type="reset" value="Reset"></input></td>
+         </tr>
+        </table>
+    </form>
+
+</center>
+</body>
+</html>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Insert title here</title>
+</head>
+<body background =" https://cdn.pixabay.com/photo/2016/10/22/17/06/gradient-1761190_1280.jpg">
+<center>
+<br>
+<br>
+<br><br>
+<br>
+<br/>
+<br><br>
+<br>
+<br/>
+<h1>Error Occurred! Try again...</h1>
+<form action="addfeedback.html" method="post">
+<a href="front.html"><button type="button" class="btn btn-primary">Try again</button></a>
+</form>
+</center>
+</body>
+</html>
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Registration Page</title>
+
+<style>
+body
+{
+background-image: linear-gradient(to top, #c1dfc4 0%, #deecdd 100%);
+form
+{
+padding:20px;
+
+}
+</style>
+<style>
+.myDiv {
+		border:5px outset black;
+        width: 300px;
+        height: 155px;
+        background: white;
+      }
+</style>
+
+
+
+</head>
+
+
+<body>
+
+<div class="Home">
+
+<div class="col"  style="background-color:grey;border:1px solid;">
+<center>
+<a href="welcome.jsp"><button type="button">Home</button></a>
+</center>
+</div>
+</div>
+
+
+<br><br><br>
+<center>
+         <h1>Insert Faculty Data</h1>
+ </center>
+
+<br>
+  
+  <center>
+  <div class ="myDiv"> 
+<form name="form" action="FacultyServlet" method="post">
+ 
+        <table >
+    
+         <tr>
+         <td>Faculty Name</td>
+         <td><input type="text" name="Name" /></td>
+         </tr>
+         <tr>
+         <td>Qualification</td>
+         <td><input type="text" name="Qualification" /></td>
+         </tr>
+         <tr>
+         <td>Salary</td>
+         <td><input type="Salary" name="Salary" />
+         </td>
+         
+        
+         <td><%=(request.getAttribute("errMessage") == null) ? ""
+         : request.getAttribute("errMessage")%></td>
+         </tr>
+         <tr>
+         <td></td>
+         <td><input type="submit" value="submit"></input>
+         <input type="reset" value="Reset"></input></td>
+         </tr>
+            
+        </table>
+      
+    </form>
+    </div>
+     </center>
+</body>
+</html>
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+	pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Registration Page</title>
+
+<style>
+form {
+	padding: 20px;
+}
+</style>
+<style>
+.myDiv {
+	border: 5px outset black;
+	width: 300px;
+	height: 155px;
+	background: white;
+}
+</style>
+
+
+
+
+</head>
+
+
+<body>
+
+	<div class="Home">
+
+
+		<div class="col" style="background-color: grey; border: 1px solid;">
+			<center>
+
+				<a href="welcome.jsp"><button type="button">Home</button></a>
+			</center>
+		</div>
+	</div>
+
+
+	<center>
+		<div class="myDiv">
+			<form name="form" action="FeedbackServlet" method="post">
+				<table>
+					<tr>
+						<td>UserId</td>
+						<td><input type="text" name="UserId" /></td>
+					</tr>
+					<tr>
+						<td>Name</td>
+						<td><input type="text" name="Name" /></td>
+					</tr>
+					<tr>
+						<td>Opinion</td>
+						<td><input type="Opinion" name="Opinion" /></td>
+
+
+						<td><%=(request.getAttribute("errMessage") == null) ? ""
+         : request.getAttribute("errMessage")%></td>
+					</tr>
+					<tr>
+						<td></td>
+						<td><input type="submit" value="submit"></input> <input
+							type="reset" value="Reset"></input></td>
+					</tr>
+				</table>
+			</form>
+	</center>
+</body>
+</html>
+
+<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix = "c"%>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/functions" prefix = "fn"%>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/sql" prefix = "sql"%>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+
+<%@page contentType="text/html" pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <title>JSP Page</title>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+        
+    </head>
+    <style>
+
+body
+{
+ font-family: 'IBM Plex Sans', sans-serif;
+ height: 90vh;
+    width: 100%;
+    color: black;
+
+</style>
+  <body style="background-color:powderblue;">
+  <br><Br> <center>
+         <h1>Feedback detaits:</h1>
+ </center>
+        <sql:setDataSource driver="com.mysql.cj.jdbc.Driver" 
+                           url = "jdbc:mysql://localhost:3306/customers"
+                           user = "root" password = "123456" var ="ds"></sql:setDataSource>
+        <sql:query dataSource = "${ds}" var = "rs">
+            SELECT * from feedback;
+        </sql:query>
+        <br>
+        <div class ="container">
+            <table class ="table">
+            <table align="center" cellpadding="10" cellspacing="10" border="1">
+            
+                <tr>
+                    <tr bgcolor="#8fce00">
+                        
+                           <td>UserId</td>
+                           <td>Name</td>
+                           <td>Opinion</td>
+                           
+                </tr>
+
+                <c:forEach items= "${rs.rows}" var ="row">
+
+                    <tr>
+                    <tr bgcolor="#b6d7a8">
+                    
+                        <td><c:out value="${row.UserId}"/></td>
+                        <td><c:out value="${row.Name}"/></td>
+                        <td><c:out value="${row.Opinion}"/></td>
+                        
+                        
+                    </tr>
+                </c:forEach>
+            </table><br><Br>
+            <center>
+<a   href="front.html"><button type="button" class="btn btn-primary">Back to login page</button></a>
+</center>
+        </div>
+    </body>
+</html>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Login</title>
+</head>
+<style>
+body
+{
+ height: 90vh;
+    width: 100%;
+    color: black;
+     font-family: 'IBM Plex Sans', sans-serif;
+  
+    	background-image: url("images/img10.jpg");
+    }
+</style>
+<body style="background-color:powderblue;">
+<div align ="center">
+<br/><br>
+<h1 style = "font-size:49px;">Login Page</h1>
+	<form action="http://localhost:9090/TrainingInstitute/StudentUpdate1" method="post">
+	<br/><br>
+	      <label style = "font-size:25px;"> Username </label>
+	      
+            <input  style="height:35px; width:150px" placeholder  = "Enter the User Name" name="username"/><br/><br>
+            	      
+          <label style = "font-size:25px;"> Password </label>
+            
+            <input style="height:35px; width:150px" type="password" placeholder="Enter the Password" name="password"/><br/>
+        <br>
+            <div >
+                <input  type="radio" name="role"value="Admin"/><label style="font-size: 25px;">Admin</label>
+                <input type="radio" name="role" value="Institute"/><label style="font-size: 25px;">Institute</label>
+                <input type="radio" name="role" value="Student"/><label style="font-size: 25px;">Student</label>
+
+            </div><br>
+            <input style = "font-size:21px;" type="submit" value="submit"/>
+           
+        </form>
+         </div>
+</body>
+</html>
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Insert title here</title>
+</head>
+<body>
+<h3>Registration Done successfully </h3>
+</body>
+</html>
+
+<a href="welcome.jsp"><button type="button" class="btn btn-primary">Home</button></a>
+
+<!-- To tell the User that his registration is done successfully -->
+
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Institute</title>
+
+<style>
+
+body
+{
+ background-color: #cccccc;
+}
+</style>
+
+</head>
+
+<body>
+<center>
+<h2>Institute's Portal</h2>
+</center>
+<p style="font-size: 22pt" >
+Welcome <%=request.getAttribute("userName") %></p>
+<style>
+.myDiv {
+  border: 5px outset black;
+  background-color: white;    
+ 
+}
+</style>
+<div style="text-align: right"><a href="front.html"><button type="button" class="btn btn-primary">Logout</button></a></div>
+ <% 
+ 	String usrnm = (String)request.getAttribute("userName");
+ 	String pass= (String)request.getAttribute("password");
+ %>
+<p style="font-size: 18pt">
+ <a href="<%=request.getContextPath()%>/updateinstitute.jsp?usn=<%= usrnm%>&pass=<%= pass%>" >Update_Profile</a>
+
+</p>
+</body>
+</html>
+<body>
+<div class="myDiv">
+<form style="font-size: 22pt" action="studentdetails.jsp">Institute Operations<br/><br></br>
+    <input type="submit"style="background-color:grey;border-color:grey;color:white;font-size:18px; "value="Student_Details" />
+</form></div>
+<br></br>
+<div class="myDiv">
+<form style="font-size: 22pt" action="Faculty.jsp">Institute Operations<br/><br></br>
+    <input type="submit"style="background-color:grey;border-color:grey;color:white;font-size:18px;" value="Insert Facultydata" />
+</form></div>
+<br></br>
+<div class="myDiv">
+<form style="font-size: 22pt"action="viewrequest.jsp">Institute Operations<br/><br></br>
+    <input type="submit" style="background-color:grey;border-color:grey;color:white;font-size:18px;" value="View_Request" />
+</form></div>
+<br></br>
+<div class="myDiv">
+<form style="font-size: 22pt" action="updateresponse.jsp">update response<br/><br></br>
+    <input type="submit" style="background-color:grey;border-color:grey;color:white;font-size:18px;" value="Send_Response" />
+</form></div>
+<br></br>
+<div class="myDiv">
+<form style="font-size: 22pt" action="Feedbackdetails.jsp">Institute Operations<br/><br></br>
+    <input type="submit"style="background-color:grey;border-color:grey;color:white ;font-size:18px;"value="View_Feedback" />
+</form></div>
+<br></br>
+
+</body>
+</html>
+
+
+<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix = "c"%>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/functions" prefix = "fn"%>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/sql" prefix = "sql"%>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+
+<%@page contentType="text/html" pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <title>JSP Page</title>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    </head>
+     <style>
+
+body
+{
+ font-family: 'IBM Plex Sans', sans-serif;
+ height: 90vh;
+    width: 100%;
+    color: black;
+
+   
+
+
+</style>
+    <body style="background-color: grey" >
+        <h1 align=center>Institute details</h1>
+        <br><br>
+        <sql:setDataSource driver="com.mysql.cj.jdbc.Driver" 
+                           url = "jdbc:mysql://localhost:3306/customers"
+                           user = "root" password = "123456" var ="ds"></sql:setDataSource>
+        <sql:query dataSource = "${ds}" var = "rs">
+            SELECT * from institution_details;
+        </sql:query>
+        <div class ="container"><br><br>
+            <table class ="table">
+                        <table align="center" cellpadding="10" cellspacing="10" border="1">
+            
+                <tr>
+                 <tr bgcolor="#ec2e2e">
+                           <th>Name</th>
+                           <th>Password</th>
+                           <th>Affiliation</th>
+                           <th>Address</th>
+                           <th>Seats</th>
+                           <th>Courses</th>
+                    
+                </tr>
+
+                <c:forEach items= "${rs.rows}" var ="row">
+
+                    <tr>
+                     <tr bgcolor="#f5c5c5">
+                        <td><c:out value="${row.Name}"/></td>
+                        <td><c:out value="${row.Password}"/></td>
+                        <td><c:out value="${row.Affiliation}"/></td>
+                        <td><c:out value="${row.Address}"/></td>
+                        <td><c:out value="${row.Seats}"/></td>
+                        <td><c:out value="${row.Courses}"/></td>
+                    </tr>
+                </c:forEach>
+        
+            </table>
+    
+        </div>
+                  <center>   
+<a href="Admin.jsp"><button type="button" class="btn btn-primary">Back</button></a>
+   </center>
+    </body>
+</html>
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Registration Page</title>
+
+<style>
+body
+{
+background: #B3FFAB;  /* fallback for old browsers */
+background: -webkit-linear-gradient(to right, #12FFF7, #B3FFAB);  /* Chrome 10-25, Safari 5.1-6 */
+background: linear-gradient(to right, #12FFF7, #B3FFAB); /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
+
+}
+form
+{
+padding:20px;
+}
+</style>
+<style>
+.myDiv {
+		border:5px outset black;
+        width: 300px;
+        height: 300px;
+        background: white;
+      }
+</style>
+</head>
+
+<body>
+
+<div class="Home">
+
+<div class="col"  style="background-color:black;border:1px solid;">
+<center>
+<a href="welcome.jsp"><button type="button">Home</button></a>
+</center>
+</div>
+</div>
+
+<center>
+<br><br>
+<h1 style = "font-size:49px;">Registration Page</h1>
+<br><br>
+<div class ="myDiv">
+
+<form name="form" action="InstitutionServlet" method="post">
+        <table >
+         <tr>
+         <td>Institute Name</td>
+         <td><input type="text" name="Name" /></td>
+         </tr>
+         <tr>
+         <td>Password</td>
+         <td><input type="password" name="Password" /></td>
+         </tr>
+          <tr>
+         <td>Confirm Password</td>
+         <td><input type="password" name="conpassword" /></td>
+         </tr>
+         <tr>
+         <td>Affiliation Date</td>
+         <td><input type="date" name="Affiliation" /></td>
+         </tr>
+         <tr>
+         <td>Address</td>
+         <td><input type="text" name="Address" /></td>
+         </tr>
+         <tr>
+         <td>Seats</td>
+         <td><input type="text" name="Seats" /></td>
+         </tr>
+         <tr>
+         <td>Courses</td>
+         <td><input type="text" name="Courses" /></td>
+         </tr>
+         <tr>
+         <td><%=(request.getAttribute("errMessage") == null) ? ""
+         : request.getAttribute("errMessage")%></td>
+         </tr>
+         <tr>
+         <td></td>
+         <td><input type="submit" value="submit"></input>
+         <input type="reset" value="Reset"></input></td>
+         </tr>
+        </table>
+    </form>
+    </center>
+   </div>
+</body>
+</html>
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Insert title here</title>
+</head>
+<style>
+
+
+
+<style>body{
+	margin: 0;
+	padding: 0;
+	background-color: #78e4ff;
+	background-repeat: no-repeat;
+	 font-family: 'IBM Plex Sans', sans-serif;
+}
+
+.container
+{
+	width: 50%;
+	display: flex;
+    align-items: center;
+	height: 720px;
+}
+
+.indexbox{
+	width: 320px;
+	height: auto;
+	padding:30px 30px;
+	box-sizing: border-box;
+	background: rgba(255,250,250,0.85);
+	margin: 0 auto;
+}
+
+h2{
+ 	top:-20%;
+	margin: 0 auto;
+	padding: 0 0 40px;
+	color:#2f4f4f;
+ 	font-size:22px;
+ }
+ 
+.indexbox button
+{
+	width: 100%;
+	margin-bottom: 40px;
+}
+ 
+.button1{
+	position: realtive;
+  	align: center;
+	border: none;
+	outline: none;
+	height: 40px;
+	width: 64%;
+	color: black;
+	font-size: 18px;
+	background: grey;
+	cursor: pointer;
+	border-radius: 20px;	
+}
+ 
+.button1:hover{
+	color: green;
+	background: white;
+}
+
+body
+{
+ height: 90vh;
+    width: 100%;
+    color: black;
+     font-family: 'IBM Plex Sans', sans-serif;
+background: #16A085;  /* fallback for old browsers */
+background: -webkit-linear-gradient(to right, #F4D03F, #16A085);  /* Chrome 10-25, Safari 5.1-6 */
+background: linear-gradient(to right, #F4D03F, #16A085); /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
+
+</style>
+<body>
+	<div class="container">
+		<div class="indexbox">
+			<p><p>
+			<h2> Registration   </h2>
+			<form action="Register.jsp"><button class="button1">For Student</button></form>
+			<form action="InstRegister.jsp"><button class="button1">For Institute</button></form>
+		</div>
+	</div>
+</body>
+</html>
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Registration Page</title>
+
+<style>
+body
+{
+background: #ee9ca7;  /* fallback for old browsers */
+background: -webkit-linear-gradient(to right, #ffdde1, #ee9ca7);  /* Chrome 10-25, Safari 5.1-6 */
+background: linear-gradient(to right, #ffdde1, #ee9ca7); /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
+}
+form
+{
+padding:20px;
+
+}
+</style>
+<style>
+.myDiv {
+		border:5px outset black;
+        width: 300px;
+        height: 300px;
+        background: white;
+      }
+</style>
+</head>
+
+
+<body>
+
+<div class="Home">
+
+<div class="col"  style="background-color:black;border:1px solid;">
+<center>
+<a href="welcome.jsp"><button type="button">Home</button></a>
+</center>
+</div>
+</div>
+<br><br><br><br>
+<center>
+<h1 style = "font-size:49px;">Registration Page</h1>
+<br><br>
+<div class ="myDiv">
+
+<form name="form" action="RegisterServlett" method="post">
+        <table >
+         <tr>
+         <td >Student Name</td>
+         <td ><input  type="text" name="Name" /></td>
+         </tr>
+         <tr>
+         <td>Qualification</td>
+         <td><input type="text" name="Qualification" /></td>
+         </tr>
+         <tr>
+         <td>Password</td>
+         <td><input type="password" name="Password" /></td>
+         </tr>
+         <tr>
+         <td>Confirm Password</td>
+         <td><input type="password" name="conpassword" /></td>
+         </tr>
+         <tr>
+         <td>Contact</td>
+         <td><input type="text" name="Contact" /></td>
+         </tr>
+         <tr>
+         <td>Address</td>
+         <td><input type="text" name="Address" /></td>
+         </tr>
+         <tr>
+         <td>EmailId</td>
+         <td><input type="email" name="EmailId" /></td>
+         </tr>
+         <tr>
+         <td>UserId</td>
+         <td><input type="text" name="UserId" /></td>
+         </tr>
+         <tr>
+         <td><%=(request.getAttribute("errMessage") == null) ? ""
+         : request.getAttribute("errMessage")%></td>
+         </tr>
+         <tr>
+         <td></td>
+         <td><input type="submit" value="submit"></input>
+         <input type="reset" value="Reset"></input></td>
+         </tr>
+        </table>
+    </form>
+
+    </div>
+    </center>
+</body>
+</html>
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Registration Page</title>
+
+<style>
+form
+{
+padding:20px;
+}
+
+
+</style>
+
+</head>
+
+
+<body>
+
+<div class="Home">
+
+<div class="col"  style="background-color:black;border:1px solid;">
+<center>
+<a href="welcome.jsp"><button type="button">Home</button></a>
+</center>
+</div>
+</div>
+
+
+<div align ="center">
+
+<form name="form" action="Request" method="post">
+        <table >
+         <tr>
+         <td>UserName</td>
+         <td><input type="text" name="UserName" /></td>
+         </tr>
+         <tr>
+         <td>Name</td>
+         <td><input type="text" name="Name" /></td>
+         </tr>
+         <tr>
+         <td>Request</td>
+         <td><input type="Opinion" name="Request" />
+         </td>
+          <tr>
+         <td>Response</td>
+         <td><input type="text" name="Response" /></td>
+         </tr>
+         
+        
+         <td><%=(request.getAttribute("errMessage") == null) ? ""
+         : request.getAttribute("errMessage")%></td>
+         </tr>
+         <tr>
+         <td></td>
+         <td><input type="submit" value="submit"></input>
+         <input type="reset" value="Reset"></input></td>
+         </tr>
+        </table>
+    </form>
+    </div>
+</body>
+</html>
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+	pageEncoding="UTF-8"%>
+<%@page language="java"
+	import="java.sql.*,com.mysql.jdbc.Driver,javax.sql.*"%>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Send Request</title>
+</head>
+
+
+<style>
+form {
+	padding: 20px;
+}
+</style>
+
+
+</head>
+<style>
+body {
+	font-family: 'IBM Plex Sans', sans-serif;
+	height: 90vh;
+	width: 100%;
+	color: black;
+	background: #2980B9; /* fallback for old browsers */
+	background: -webkit-linear-gradient(to right, #FFFFFF, #6DD5FA, #2980B9);
+	/* Chrome 10-25, Safari 5.1-6 */
+	background: linear-gradient(to right, #FFFFFF, #6DD5FA, #2980B9);
+} /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
+</style>
+<body>
+
+	<div class="Home">
+
+		<div class="col" style="background-color: black; border: 1px solid;">
+			<center>
+				<a href="welcome.jsp"><button type="button">Home</button></a>
+			</center>
+		</div>
+	</div>
+</body>
+
+<body>
+
+	<%
+	    String usernmae = request.getParameter("usn");
+		String passwrd = request.getParameter("pass");
+	    String CONN_STRING = "jdbc:mysql://localhost:3306/customers";
+	    String USERNAME = "root";
+	    String PASSWORD = "123456";
+
+	    Connection conn=null;
+	    ResultSet rs =null;
+	    ResultSet rs2 =null;
+	    ResultSet rs3 =null;
+	    Statement stmt=null;
+	   
+
+
+	    Class.forName("com.mysql.jdbc.Driver");
+
+	    conn = DriverManager.getConnection(CONN_STRING, USERNAME, PASSWORD);
+	    Statement stmt2=conn.createStatement();
+	    String sql0="SELECT * FROM student_details WHERE UserId=? & Password=?";
+	    ResultSet rst=stmt2.executeQuery("select * from student_details where UserId='"+usernmae+"' && Password='"+passwrd+"'");
+	    String name=null;
+	    String userid=null;
+	    if(rst.next())
+	    {
+	    	name = rst.getString("Name");
+	    	userid = rst.getString("UserId");
+	    }
+	%>
+	<center>
+		<form method="post" action="SendRequest">
+			<h2>SEND REQUEST</h2>
+
+			Name <input placeholder="enter your request" value="<%=name %>"
+				name="Name" readonly /> <br> <br> User Id <input
+				placeholder="enter your request" value="<%=userid %>" name="userid"
+				readonly /> <br> <br> Request <input
+				placeholder="enter your request" name="req" /> <br>
+			<br /> <br> <input type="submit" value="submit" /> <br>
+		</form>
+	</center>
+
+	<center>
+		<a href="Student.jsp"><button type="button">Back</button></a>
+	</center>
+
+</body>
+</html>
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+    <%@page import="com.mysql.*"%>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Student</title>
+
+<style>
+
+body
+{
+ background-color: lightyellow;
+}
+</style>
+
+</head>
+<body>
+<h2>Students Portal</h2>
+<center>
+<p style="font-size: 22pt" >
+Welcome <%=request.getAttribute("userName") %></p> 
+</center>
+<style>
+.myDiv {
+  border: 5px outset black;
+  background-color: white;    
+ 
+}
+</style>
+ <% 
+ 	String usrnm = (String)request.getAttribute("userName");
+ 	String pass= (String)request.getAttribute("password");
+ %>
+ <a href="<%=request.getContextPath()%>/updatestduent.jsp?usn=<%= usrnm%>&pass=<%= pass%>">Update_Profile</a>
+  <a href="<%=request.getContextPath()%>/Request1.jsp?usn=<%= usrnm%>&pass=<%= pass%>">Request</a>
+ 
+<div style="text-align: right"><a href="front.html"><button type="button" class="btn btn-primary">Logout</button></a></div>
+<div class="myDiv">
+ <a href="<%=request.getContextPath()%>/updatestduent.jsp?usn=<%= usrnm%>&pass=<%= pass%>"><style="font-size: 22pt"></style>Student Operations<br/><br></br>
+    <input type="submit"style="background-color:grey;border-color:grey;color:white;font-size:18px; "value="Update Student" />
+</form></div>
+<br></br>
+<div class="myDiv">
+<a href="<%=request.getContextPath()%>/Request1.jsp?usn=<%= usrnm%>&pass=<%= pass%>"></style>Student Operations<br/><br></br>
+    <input type="submit"style="background-color:grey;border-color:grey;color:white;font-size:18px;" value="Send Request" />
+</form></div>
+<br></br>
+<div class="myDiv">
+<form style="font-size: 22pt"action="Viewresponse.jsp">Student Operations<br/><br></br>
+    <input type="submit" style="background-color:grey;border-color:grey;color:white;font-size:18px;" value="View_Response" />
+</form></div>
+<br></br>
+<div class="myDiv">
+<form style="font-size: 22pt" action="Feedback.jsp">Student Operations<br/><br></br>
+    <input type="submit" style="background-color:grey;border-color:grey;color:white;font-size:18px;" value="Send_Feedback" />
+</form></div>
+<br></br>
+
+</body>
+</html>
+
+<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix = "c"%>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/functions" prefix = "fn"%>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/sql" prefix = "sql"%>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+
+<%@page contentType="text/html" pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <title>JSP Page</title>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    </head>
+    <style>
+    .sq{
+		background-color: ;
+        
+      
+        }
+table, td, th {  
+  border: 3px solid #ddd;
+  text-align: left;
+  border-color:black;
+  
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+th, td {
+  padding: 25px;
+}
+</style>
+    <body style="background-color: grey" ><br><br>
+        <h1 align="center">Student details</h1>
+        <sql:setDataSource driver="com.mysql.cj.jdbc.Driver" 
+                           url = "jdbc:mysql://localhost:3306/customers"
+                           user = "root" password = "123456" var ="ds"></sql:setDataSource>
+        <sql:query dataSource = "${ds}" var = "rs">
+            SELECT * from student_details;
+        </sql:query>
+        <div class ="container">
+        <br><br><br><br>
+            <table class ="table">
+            
+                <tr class=sq>
+                                    <tr bgcolor="#2986cc">
+                
+                           <th>Name</th>
+                           <th>Qualification</th>
+                           <th>Password</th>
+                           <th>Contact</th>
+                           <th>Address</th>
+                           <th>EmailId</th>
+                           <th>UserId</th>
+                    
+                </tr>
+
+                <c:forEach items= "${rs.rows}" var ="row">
+
+                    <tr>
+                                        <tr bgcolor="#cfe2f3">
+                    
+                        <td><c:out value="${row.Name}"/></td>
+                        <td><c:out value="${row.Qualification}"/></td>
+                        <td><c:out value="${row.Password}"/></td>
+                        <td><c:out value="${row.Contact}"/></td>
+                        <td><c:out value="${row.Address}"/></td>
+                        <td><c:out value="${row.EmailId}"/></td>
+                        <td><c:out value="${row.UserId}"/></td>
+                        
+                    </tr>
+                </c:forEach>
+            </table>
+
+        </div>
+    </body>
+</html>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Insert title here</title>
+</head>
+<body background =" https://cdn.pixabay.com/photo/2016/10/22/17/06/gradient-1761190_1280.jpg">
+<center>
+<br>
+<br>
+<br><br>
+<br>
+<br/>
+<br><br>
+<br>
+<br/>
+<h1>Successfully Updated</h1>
+<form action="addfeedback.html" method="post">
+<a href="Institute.jsp"><button type="button" class="btn btn-primary">Back</button></a>
+</form>
+</center>
+</body>
+</html>
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Insert title here</title>
+</head>
+<body>
+
+<form name="form" action="UpdateServlet" method="post">
+        <table >
+         <tr>
+         <td>Student Name</td>
+         <td><input type="text" name="Name" /></td>
+         </tr>
+          <tr>
+         <td>Qualification</td>
+         <td><input type="text" name="Qualification" /></td>
+         </tr>
+          <tr>
+         <td>Password</td>
+         <td><input type="text" name="Password" /></td>
+         </tr>
+          <tr>
+         <td>Contact</td>
+         <td><input type="text" name="Contact" /></td>
+         </tr>
+          <tr>
+         <td>Address</td>
+         <td><input type="text" name="Address" /></td>
+         </tr>
+          <tr>
+         <td>EmailId</td>
+         <td><input type="text" name="EmailId" /></td>
+         </tr>
+          <tr>
+         <td>UserId</td>
+         <td><input type="text" name="UserId" /></td>
+         </tr>
+        
+         
+        <tr>
+        <td>
+        <input type="checkbox"><p>Do you want to Update this<p></input>
+        </td>
+        </tr>
+         
+         <tr>
+         <td></td>
+         <td><input type="submit" value="Update"></input>
+         <input type="reset" value="Reset"></input></td>
+         </tr>
+        </table>
+    </form>
+
+
+</body>
+</html>
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+	pageEncoding="UTF-8"%>
+<%@page language="java"
+	import="java.sql.*,com.mysql.jdbc.Driver,javax.sql.*"%>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Update Institute</title>
+</head>
+<body>
+
+	<%
+	String usernmae = request.getParameter("usn");
+	String passwrd = request.getParameter("pass");
+	String CONN_STRING = "jdbc:mysql://localhost:3306/customers";
+	String USERNAME = "root";
+	String PASSWORD = "123456";
+
+	Connection conn = null;
+	ResultSet rs = null;
+	ResultSet rs2 = null;
+	ResultSet rs3 = null;
+	Statement stmt = null;
+
+	Class.forName("com.mysql.jdbc.Driver");
+
+	conn = DriverManager.getConnection(CONN_STRING, USERNAME, PASSWORD);
+	Statement stmt2 = conn.createStatement();
+	ResultSet rst = stmt2
+			.executeQuery("select * from institution_details where Name='" + usernmae + "' && Password='" + passwrd + "'");
+	String name = null;
+	String email = null;
+	String pass = null;
+	String add = null;
+	String con = null;
+	String userid = null;
+	if (rst.next()) {
+		pass = rst.getString("Password");
+		email = rst.getString("Affiliation");
+		add = rst.getString("Address");
+		con = rst.getString("Seats");
+		userid = rst.getString("Courses");
+		name = rst.getString("Name");
+
+	}
+	%>
+	<center>
+		<div align="center"
+			style="border: 2px outset black; width: 400px; height: 500px">
+
+			<br></br>
+			<h1 style="font-size: 35px;">Update Profile</h1>
+
+
+			<br></br>
+			<form method="post"
+				action="<%=request.getContextPath()%>/UpdateInstitute">
+				<label style="font-size: 20px"></label> Password&nbsp;&nbsp;<input
+					style="font-size: 20px" placeholder="enter the Password"
+					value="<%=pass%>" name="spass" /><br></br> Affiliation&nbsp;&nbsp;<input
+					style="font-size: 20px" placeholder="enter the Affiliation"
+					value="<%=email%>" name="semail" /><br></br> Address&nbsp;&nbsp;<input
+					style="font-size: 20px" placeholder="enter the Address"
+					value="<%=add%>" name="sadd" /><br></br>
+				Seats&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input
+					style="font-size: 20px" placeholder="enter the Seats"
+					value="<%=con%>" name="scon" /><br></br>
+				Courses&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input style="font-size: 20px"
+					placeholder="enter the Courses" value="<%=userid%>" name="UserId" /><br></br>
+				<input placeholder="enter the Name" value="<%=name%>" name="sname"
+					type="hidden" /> <input style="font-size: 20px" type="submit"
+					value="submit" />
+			</form>
+	</center>
+</body>
+</html>
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+	pageEncoding="UTF-8"%>
+<%@page language="java"
+	import="java.sql.*,com.mysql.jdbc.Driver,javax.sql.*"%>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Insert title here</title>
+</head>
+<body>
+
+	<%
+	String usernmae = request.getParameter("usn");
+	String passwrd = request.getParameter("pass");
+	String CONN_STRING = "jdbc:mysql://localhost:3306/customers";
+	String USERNAME = "root";
+	String PASSWORD = "123456";
+
+	Connection conn = null;
+	ResultSet rs = null;
+	ResultSet rs2 = null;
+	ResultSet rs3 = null;
+	Statement stmt = null;
+
+	Class.forName("com.mysql.jdbc.Driver");
+
+	conn = DriverManager.getConnection(CONN_STRING, USERNAME, PASSWORD);
+	Statement stmt2 = conn.createStatement();
+	String sql0 = "SELECT * FROM student_details WHERE UserId=? & Password=?";
+	ResultSet rst = stmt2
+			.executeQuery("select * from student_details where UserId='" + usernmae + "' && Password='" + passwrd + "'");
+	String name = null;
+	String userid = null;
+	if (rst.next()) {
+		name = rst.getString("Name");
+		userid = rst.getString("UserId");
+	}
+	%>
+	<form method="post" action="<%=request.getContextPath()%>/SendRequest">
+		<input placeholder="enter your request" value="<%=name%>" name="Name"
+			readonly /> <input placeholder="enter your request"
+			value="<%=userid%>" name="userid" readonly /> <input
+			placeholder="enter your request" name="req" /> <input type="submit"
+			value="submit" />
+	</form>
+</body>
+</html>
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Insert title here</title>
+</head>
+</style>
+<style>
+body
+{
+background: #000046;  /* fallback for old browsers */
+background: -webkit-linear-gradient(to right, #1CB5E0, #000046);  /* Chrome 10-25, Safari 5.1-6 */
+background: linear-gradient(to right, #1CB5E0, #000046); /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
+form
+{
+padding:20px;
+
+}
+
+
+</style>
+<body>
+<center>
+<br>
+<br>
+<br>
+<br>
+<h1 style = "font-size:35px;">Update Response</h1>
+<br>
+<br>
+<br>
+
+
+	<form method="post" action="StudentRequest">
+	<label style = "font-size:30px;"> S.NO </label>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+		<input style="height:35px; width:200px" placeholder="enter your request" name="sno"/> </label>
+		<br></br>
+		<label style = "font-size:30px;"> Response </label>
+		<input style="height:35px; width:200px" placeholder="enter your response" name="res"/>
+		<br/>
+		<br></br>
+		<input  style = "font-size:21px;"  type="submit" value="submit"/>
+	</form>
+	</center>
+</body>
+</html>
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+	pageEncoding="UTF-8"%>
+<%@page language="java"
+	import="java.sql.*,com.mysql.jdbc.Driver,javax.sql.*"%>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Insert title here</title>
+</head>
+<body>
+
+	<%
+	String usernmae = request.getParameter("usn");
+	String passwrd = request.getParameter("pass");
+	String CONN_STRING = "jdbc:mysql://localhost:3306/customers";
+	String USERNAME = "root";
+	String PASSWORD = "123456";
+
+	Connection conn = null;
+	ResultSet rs = null;
+	ResultSet rs2 = null;
+	ResultSet rs3 = null;
+	Statement stmt = null;
+
+	Class.forName("com.mysql.jdbc.Driver");
+
+	conn = DriverManager.getConnection(CONN_STRING, USERNAME, PASSWORD);
+	Statement stmt2 = conn.createStatement();
+	String sql0 = "SELECT * FROM student_details WHERE UserId=? & Password=?";
+	ResultSet rst = stmt2
+			.executeQuery("select * from student_details where UserId='" + usernmae + "' && Password='" + passwrd + "'");
+	String name = null;
+	String userid = null;
+	if (rst.next()) {
+		name = rst.getString("Name");
+		userid = rst.getString("UserId");
+	}
+	%>
+	<form method="post" action="<%=request.getContextPath()%>/SendRequest">
+		<input placeholder="enter your request" value="<%=name%>" name="Name"
+			readonly /> <input placeholder="enter your request"
+			value="<%=userid%>" name="userid" readonly /> <input
+			placeholder="enter your request" name="req" /> <input type="submit"
+			value="submit" />
+	</form>
+</body>
+</html>
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Insert title here</title>
+</head>
+</style>
+<style>
+body
+{
+background: #000046;  /* fallback for old browsers */
+background: -webkit-linear-gradient(to right, #1CB5E0, #000046);  /* Chrome 10-25, Safari 5.1-6 */
+background: linear-gradient(to right, #1CB5E0, #000046); /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
+form
+{
+padding:20px;
+
+}
+
+
+</style>
+<body>
+<center>
+<br>
+<br>
+<br>
+<br>
+<h1 style = "font-size:35px;">Update Response</h1>
+<br>
+<br>
+<br>
+
+
+	<form method="post" action="StudentRequest">
+	<label style = "font-size:30px;"> S.NO </label>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+		<input style="height:35px; width:200px" placeholder="enter your request" name="sno"/> </label>
+		<br></br>
+		<label style = "font-size:30px;"> Response </label>
+		<input style="height:35px; width:200px" placeholder="enter your response" name="res"/>
+		<br/>
+		<br></br>
+		<input  style = "font-size:21px;"  type="submit" value="submit"/>
+	</form>
+	</center>
+</body>
+</html>
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+	pageEncoding="UTF-8"%>
+<%@page language="java"
+	import="java.sql.*,com.mysql.jdbc.Driver,javax.sql.*"%>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Update Student</title>
+</head>
+<body>
+
+	<%
+	String usernmae = request.getParameter("usn");
+	String passwrd = request.getParameter("pass");
+	String CONN_STRING = "jdbc:mysql://localhost:3306/customers";
+	String USERNAME = "root";
+	String PASSWORD = "123456";
+
+	Connection conn = null;
+	ResultSet rs = null;
+	ResultSet rs2 = null;
+	ResultSet rs3 = null;
+	Statement stmt = null;
+
+	Class.forName("com.mysql.jdbc.Driver");
+
+	conn = DriverManager.getConnection(CONN_STRING, USERNAME, PASSWORD);
+	Statement stmt2 = conn.createStatement();
+	String sql0 = "SELECT * FROM student_details WHERE UserId=? & Password=?";
+	ResultSet rst = stmt2
+			.executeQuery("select * from student_details where UserId='" + usernmae + "' && Password='" + passwrd + "'");
+	String name = null;
+	String email = null;
+	String pass = null;
+	String add = null;
+	String con = null;
+	String userid = null;
+	if (rst.next()) {
+		name = rst.getString("Name");
+		email = rst.getString("EmailId");
+		pass = rst.getString("Password");
+		add = rst.getString("Address");
+		con = rst.getString("Contact");
+		userid = rst.getString("UserId");
+	}
+	%>
+	<center>
+		<div align="center"
+			style="border: 2px outset black; width: 400px; height: 500px">
+
+			<br></br>
+			<h1 style="font-size: 35px;">Update Profile</h1>
+
+
+			<br></br>
+			<form method="post"
+				action="<%=request.getContextPath()%>/UpdateStudent">
+				<label style="font-size: 20px"></label> Name&nbsp;&nbsp;<input
+					style="font-size: 20px" placeholder="enter the name"
+					value="<%=name%>" name="sname" /><br></br> EmailId &nbsp;&nbsp;<input
+					style="font-size: 20px" placeholder="enter the EmailId"
+					value="<%=email%>" name="semail" /><br></br> Password&nbsp;&nbsp;<input
+					style="font-size: 20px" placeholder="enter the Password"
+					value="<%=pass%>" name="spass" /><br></br> Address&nbsp;&nbsp;<input
+					style="font-size: 20px" placeholder="enter the Address"
+					value="<%=add%>" name="sadd" /><br></br> Contact&nbsp;&nbsp;<input
+					style="font-size: 20px" placeholder="enter the Contact"
+					value="<%=con%>" name="scon" /><br></br> <input
+					placeholder="enter the name" value="<%=userid%>" name="UserId"
+					type="hidden" /><br /> <input style="font-size: 20px" type="submit"
+					value="submit" />
+			</form>
+		</div>
+	</center>
+
+</body>
+</html>
+
+<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix = "c"%>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/functions" prefix = "fn"%>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/sql" prefix = "sql"%>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+
+<%@page contentType="text/html" pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <title>View Request</title>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+        
+    </head>
+    <style>
+
+body
+{
+ font-family: 'IBM Plex Sans', sans-serif;
+ height: 90vh;
+    width: 100%;
+    color: black;
+    background: #f7ff00;  /* fallback for old browsers */
+background: -webkit-linear-gradient(to right, #db36a4, #f7ff00);  /* Chrome 10-25, Safari 5.1-6 */
+background: linear-gradient(to right, #db36a4, #f7ff00); /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
+    
+
+</style>
+    <body  >
+  <br><Br><br><Br>  <center>
+        <h2>Request Details</h2>
+         </center><br><Br>
+        <sql:setDataSource driver="com.mysql.cj.jdbc.Driver" 
+                           url = "jdbc:mysql://localhost:3306/customers"
+                           user = "root" password = "123456" var ="ds"></sql:setDataSource>
+        <sql:query dataSource = "${ds}" var = "rs">
+            SELECT * from student_request;
+        </sql:query>
+        <div class ="container">
+            <table class ="table">
+             <table align="center" cellpadding="10" cellspacing="10" border="1">
+           
+                <tr>
+                     <tr bgcolor="b60d60">
+                           <th>UserId</th>
+                           <th>Name</th>
+                           <th>Request</th>
+                           
+                </tr>
+
+                <c:forEach items= "${rs.rows}" var ="row">
+
+                    <tr>
+                       <tr bgcolor="#fd8ec5">
+                        <td><c:out value="${row.UserId}"/></td>
+                        <td><c:out value="${row.Name}"/></td>
+                        <td><c:out value="${row.Request}"/></td>
+                        
+                        
+                    </tr>
+                </c:forEach>
+            </table>
+
+        </div>
+    </body>
+</html>
+
+<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix = "c"%>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/functions" prefix = "fn"%>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/sql" prefix = "sql"%>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+
+<%@page contentType="text/html" pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <title>JSP Page</title>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    </head>
+     <style>
+
+body
+{
+ font-family: 'IBM Plex Sans', sans-serif;
+ height: 90vh;
+    width: 100%;
+    color: black;
+
+</style>
+    <body style="background-color: white" >
+        <h2>View Response</h2>
+        <sql:setDataSource driver="com.mysql.cj.jdbc.Driver" 
+                           url = "jdbc:mysql://localhost:3306/customers"
+                           user = "root" password = "123456" var ="ds"></sql:setDataSource>
+        <sql:query dataSource = "${ds}" var = "rs">
+            SELECT * from student_request;
+        </sql:query>
+        <div class ="container">
+            <table class ="table">
+                        <table align="center" cellpadding="10" cellspacing="10" border="1">
+            
+                <tr>
+                 <tr bgcolor="#ec2e2e">
+                           <th>Sno</th>
+                           <th>Name</th>
+                           <th>Request</th>
+                           <th>UserId</th>
+                           <th>Response</th>
+                    
+                </tr>
+
+                <c:forEach items= "${rs.rows}" var ="row">
+
+                    <tr>
+                     <tr bgcolor="#f5c5c5">
+                        <td><c:out value="${row.Sno}"/></td>
+                        <td><c:out value="${row.Name}"/></td>
+                        <td><c:out value="${row.Request}"/></td>
+                        <td><c:out value="${row.UserId}"/></td>
+                        <td><c:out value="${row.Response}"/></td>
+                    </tr>
+                </c:forEach>
+            </table>
+
+        </div>
+    </body>
+</html>
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Welcome Page</title>
+</head>
+
+<style>body{
+	margin: 0;
+	padding: 0;
+	font-family: sans-serif;
+	background-image: url("../images/bg.png");
+	background-color: #78e4ff;
+	background-repeat: no-repeat;
+}
+
+.container
+{
+	width: 160%;
+	display: flex;
+    align-items: center;
+	height: 500px;
+}
+
+.indexbox{
+	width: 320px;
+	height: auto;
+	padding:30px 30px;
+	box-sizing: border-box;
+	background: rgba(255,250,250,0.85);
+	margin: 0 auto;
+}
+
+h2{
+ 	top:-20%;
+	margin: 0 auto;
+	padding: 0 0 40px;
+	color:#2f4f4f;
+ 	font-size:22px;
+ }
+ 
+.indexbox button
+{
+	width: 100%;
+	margin-bottom: 40px;
+}
+ 
+.button1{
+	position: realtive;
+  	align: center;
+	border: none;
+	outline: none;
+	height: 40px;
+	width: 64%;
+	color: #fff;
+	font-size: 18px;
+	background: #090adc;
+	cursor: pointer;
+	border-radius: 20px;	
+}
+ 
+.button1:hover{
+	color: #262626;
+	background: #04e4e4;
+}
+
+body
+{
+ height: 90vh;
+    width: 100%;
+    color: black;
+     font-family: 'IBM Plex Sans', sans-serif;
+  
+    	background-image: url("images/img7.jpg");
+    }
+
+</style>
+<h1 style="text-align:right;font-size:30px;">Welcome to Training Institute's Page</h1>
+
+<body>
+	<div class="container">
+		<div class="indexbox">
+			<p><p>
+			<h2>    Training Institute</h2>
+			<form action="front.html"><button class="button1">Login</button></form>
+			<form action="Newuser.jsp"><button class="button1">New User</button></form>
+		</div>
+	</div>
+</body>
+<body>
+
+
+
+</body>
+</html>
